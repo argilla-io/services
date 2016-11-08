@@ -1,0 +1,22 @@
+FROM java:8
+
+ENV CORENLP_ARCHIVE_VERSION=2016-10-31
+ENV CORENLP_MODEL=spanish
+ENV CORENLP_ARCHIVE=stanford-corenlp-full-${CORENLP_ARCHIVE_VERSION}.zip \
+  CORENLP_PATH=/corenlp
+
+ENV CORENLP_MODEL_JAR=stanford-${CORENLP_MODEL}-corenlp-${CORENLP_ARCHIVE_VERSION}-models.jar
+
+
+RUN wget http://nlp.stanford.edu/software/$CORENLP_ARCHIVE \
+  && unzip $CORENLP_ARCHIVE \
+  && mv $(basename ../$CORENLP_ARCHIVE .zip) $CORENLP_PATH \
+  && rm $CORENLP_ARCHIVE
+
+RUN wget http://nlp.stanford.edu/software/$CORENLP_MODEL_JAR \
+  && mv $(basename ../$CORENLP_MODEL_JAR ) $CORENLP_PATH/
+
+WORKDIR $CORENLP_PATH
+
+EXPOSE 9000
+CMD ["java", "-mx4g", "-cp", "*", "edu.stanford.nlp.pipeline.StanfordCoreNLPServer", "9000"]

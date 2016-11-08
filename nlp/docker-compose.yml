@@ -1,0 +1,7 @@
+version: '2'
+
+services:
+  nlp:
+    build: .
+    ports:
+     - "9000:9000"
