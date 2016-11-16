@@ -1,0 +1,7 @@
+version: '2'
+
+services:
+  rie:
+    build: .
+    ports:
+     - "7000:7000"
