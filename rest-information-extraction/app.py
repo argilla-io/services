@@ -1,9 +1,7 @@
-from displacy.server import APP, get_model
+from server.server import APP, get_model
 
-# Pre-load English and German models
+# Pre-load English model
 get_model('en')
-get_model('de')
-
 
 if __name__ == '__main__':
     from wsgiref import simple_server
