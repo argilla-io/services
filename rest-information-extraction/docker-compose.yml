@@ -1,6 +1,9 @@
 version: '2'
 
 services:
+  base_image:
+    build: restDeps/.
+    image: recog/rest-dependencies
   rie:
     build: .
     ports:

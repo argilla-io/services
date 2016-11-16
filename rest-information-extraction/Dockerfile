@@ -1,16 +1,11 @@
-# FROM python:2.7-slim
-FROM python:2.7
+FROM recog/rest-dependencies
 
-COPY  files  /run
+COPY  app  /run
 
 WORKDIR /run
 
-# TODO: Manage as deployed dependency
-RUN pip install --upgrade pip \
-	&& pip install git+git://github.com/recognai/textacy \
-	&& pip install -r requirements.txt
-
-RUN python -m spacy.en.download
+# Clean all shit (seen in slim Dockerfile)
+RUN pip install -r requirements.txt
 
 EXPOSE 7000
 
