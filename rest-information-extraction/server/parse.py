@@ -81,3 +81,11 @@ class Keywords(object):
     def to_json(self):
         return [{'text': keyword[0], 'score': keyword[1]}
                 for keyword in textacy.keyterms.sgrank(self.doc)]
+
+class Concepts(object):
+    def __init__(self, nlp, text):
+        self.doc = nlp(text)
+
+    def to_json(self):
+        return [{'text':chunk.text, 'start': chunk.start_char, 'end': chunk.end_char}
+                for chunk in textacy.extract.noun_chunks(self.doc)]

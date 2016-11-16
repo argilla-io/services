@@ -13,7 +13,7 @@ from spacy.symbols import ENT_TYPE, TAG, DEP
 
 import spacy.util
 
-from .parse import Parse, Entities, Triples, Keywords
+from .parse import Parse, Entities, Triples, Keywords, Concepts
 
 
 try:
@@ -169,10 +169,29 @@ class KeywordsResource(object):
             traceback.print_exc(file=sys.stdout)
             resp.status = falcon.HTTP_500
 
+class ConceptsResource(object):
+    """Parse text and return concepts."""
+    def on_post(self, req, resp):
+        req_body = req.stream.read()
+        json_data = json.loads(req_body.decode('utf8'))
+        text = json_data.get('text')
+        model_name = json_data.get('model', 'en')
+        try:
+            model = get_model(model_name)
+            concepts = Concepts(model, text)
+            resp.body = json.dumps(concepts.to_json(), sort_keys=True, indent=2)
+            resp.content_type = b'text/string'
+            resp.append_header(b'Access-Control-Allow-Origin', b"*")
+            resp.status = falcon.HTTP_200
+        except Exception as ex:
+            traceback.print_exc(file=sys.stdout)
+            resp.status = falcon.HTTP_500
+
 APP = falcon.API()
-APP.add_route('/dep', DepResource())
-APP.add_route('/ent', EntResource())
+APP.add_route('/dependencies', DepResource())
+APP.add_route('/entities', EntResource())
 APP.add_route('/triples', TriplesResource())
 APP.add_route('/keywords', KeywordsResource())
+APP.add_route('/concepts', ConceptsResource())
 APP.add_route('/{model_name}/schema', SchemaResource())
 APP.add_route('/models', ModelsResource())
