@@ -13,6 +13,3 @@ RUN pip3 install requests --upgrade \
   && pip3 install nose \
   && pip3 install scipy \
   && pip3 install sklearn
-
-
-EXPOSE 8888 8000

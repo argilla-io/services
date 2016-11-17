@@ -1,24 +1,29 @@
 version: '2'
 
 services:
+  redis-server:
+    image: redis
   kg-server-deps:
     build: deps/.
     image: recog/kge-server-deps
   kg-server-celery:
     build: .
     image: recog/kg-server
-    command: /service/celerystart.sh
+    command: /bin/bash celerystart.sh
     links:
-      - redis:redis
+      - redis-server:redis
+    environment:
+      - REDIS_PORT_6379_TCP_PORT=6379
+      - REDIS_PORT_6379_TCP_ADDR=redis
   kg-server-rest:
     build: .
     image: recog/kg-server
-    command: /service/servicestart.sh
+    command: /bin/bash servicestart.sh
     ports:
       - 8000:8000
     links:
       - kg-server-celery:celery
-      - redis:redis
-
-  redis:
-    image: redis
+      - redis-server:redis
+    environment:
+      - REDIS_PORT_6379_TCP_PORT=6379
+      - REDIS_PORT_6379_TCP_ADDR=redis
