@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 
 import textacy
-
+import requests
+import json
 
 class Parse(object):
     def __init__(self, nlp, text, collapse_punctuation, collapse_phrases):
@@ -62,14 +63,23 @@ class Entities(object):
 class Triples(object):
     def __init__(self, nlp, text):
         self.doc = nlp(text)
+    def get_uri(self, text):
+        headers = {'Content-type': 'application/json'}
+        data = {"size" : 1, "query" : {"match" : { "labelsGroup" : {"query": text, "operator": "and"}}}}
+        data_json = json.dumps(data)
+        response = requests.post("http://146.148.120.198:9200/_search?fields=id,type", data=data_json, headers=headers)
+        hits = response.json()['hits']
+        if(hits['total'] > 0):
+            return hits['hits'][0]['_id']
+        return ""
     def to_json(self):
         return [{'subject': triple[0].text,
+                 'subject_uri': self.get_uri(triple[0].text),
                  's_start': triple[0].start_char,
                  's_end': triple[0].end_char,
                  'predicate': triple[1]['text'],
-                 #'p_start': triple[1]['token'].start_char,
-                 #'p_end': triple[1]['token'].end_char,
                  'object': triple[2].text,
+                 'object_uri': self.get_uri(triple[2].text),
                  'o_start': triple[2].start_char,
                  'o_end': triple[2].end_char}
                 for triple in textacy.extract.subject_verb_object_triples(self.doc)]
