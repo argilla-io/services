@@ -6,6 +6,7 @@ from pathlib import Path
 import falcon
 import spacy
 import json
+import requests
 
 import sys, traceback
 
@@ -13,7 +14,7 @@ from spacy.symbols import ENT_TYPE, TAG, DEP
 
 import spacy.util
 
-from .parse import Parse, Entities, Triples, Keywords, Concepts
+from .parse import Parse, Entities, Triples, Keywords, Concepts, Similarity
 
 
 try:
@@ -119,6 +120,7 @@ class DepResource(object):
 class EntResource(object):
     """Parse text and return displaCy ent's expected output."""
     def on_post(self, req, resp):
+
         req_body = req.stream.read()
         json_data = json.loads(req_body.decode('utf8'))
         text = json_data.get('text')
@@ -126,9 +128,9 @@ class EntResource(object):
         try:
             model = get_model(model_name)
             entities = Entities(model, text)
+            print(entities)
             resp.body = json.dumps(entities.to_json(), sort_keys=True, indent=2)
-            resp.content_type = b'text/string'
-            resp.append_header(b'Access-Control-Allow-Origin', b"*")
+            print(resp.body)
             resp.status = falcon.HTTP_200
         except Exception:
             resp.status = falcon.HTTP_500
@@ -182,10 +184,50 @@ class ConceptsResource(object):
             resp.body = json.dumps(concepts.to_json(), sort_keys=True, indent=2)
             resp.content_type = b'text/string'
             resp.append_header(b'Access-Control-Allow-Origin', b"*")
+            resp.append_header(b'Access-Control-Allow-Headers', 'Origin, Content-Type, X-Auth-Token')
             resp.status = falcon.HTTP_200
         except Exception as ex:
             traceback.print_exc(file=sys.stdout)
             resp.status = falcon.HTTP_500
+
+class SimilarityResource(object):
+    """Parse uri and return similar."""
+    def on_post(self, req, resp):
+        req_body = req.stream.read()
+        json_data = json.loads(req_body.decode('utf8'))
+        text = json_data.get('uri')
+        try:
+            concepts = Similarity(text)
+            resp.body = json.dumps(concepts.to_json(), sort_keys=True, indent=2)
+            resp.content_type = b'text/string'
+            resp.append_header(b'Access-Control-Allow-Origin', b"*")
+            resp.status = falcon.HTTP_200
+        except Exception as ex:
+            traceback.print_exc(file=sys.stdout)
+            resp.status = falcon.HTTP_500
+class WikidataResource(object):
+    """Parse uri and return similar."""
+    def get_uri(self, text):
+        headers = {'Content-type': 'application/json'}
+        # data = {"size" : 1, "query" : {"match" : { "labelsGroup" : {"query": text, "operator": "and"}}}}
+        # data_json = json.dumps(data)
+        response = requests.get(text, headers=headers)
+        return response.json()
+
+    def on_post(self, req, resp):
+        req_body = req.stream.read()
+        json_data = json.loads(req_body.decode('utf8'))
+        text = json_data.get('uri')
+        try:
+            resp.body = json.dumps(self.get_uri(text), sort_keys=True, indent=2)
+            resp.content_type = b'text/string'
+            resp.append_header(b'Access-Control-Allow-Origin', b"*")
+            resp.status = falcon.HTTP_200
+        except Exception as ex:
+            traceback.print_exc(file=sys.stdout)
+            resp.status = falcon.HTTP_500
+
+
 
 APP = falcon.API()
 APP.add_route('/dependencies', DepResource())
@@ -193,5 +235,7 @@ APP.add_route('/entities', EntResource())
 APP.add_route('/triples', TriplesResource())
 APP.add_route('/keywords', KeywordsResource())
 APP.add_route('/concepts', ConceptsResource())
+APP.add_route('/similar', SimilarityResource())
+APP.add_route('/wikidata', WikidataResource())
 APP.add_route('/{model_name}/schema', SchemaResource())
 APP.add_route('/models', ModelsResource())

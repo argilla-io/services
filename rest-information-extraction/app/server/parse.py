@@ -56,9 +56,35 @@ class Entities(object):
     def __init__(self, nlp, text):
         self.doc = nlp(text)
 
+    def get_uri(self, text):
+        headers = {'Content-type': 'application/json'}
+        data = {"size" : 1, "query" : {"match" : { "labelsGroup" : {"query": text, "operator": "and"}}}}
+        data_json = json.dumps(data)
+        response = requests.post("http://146.148.120.198:9200/_search?fields=id,type", data=data_json, headers=headers)
+        hits = response.json()['hits']
+        if(hits['total'] > 0):
+            return hits['hits'][0]['_id']
+        return ""
+
+    def get_similar(self, uri):
+        headers = {'Content-type': 'application/json'}
+        data = { "entity": {"value": uri, "type": "uri"}}
+        data_json = json.dumps(data)
+        response = requests.post("http://localhost:8000/datasets/6/similar_entities?limit=6&search_k=300", data=data_json, headers=headers)
+        hits = response.json()['similar_entities']['response']
+        print(hits)
+        return hits
+
     def to_json(self):
-        return [{'start': ent.start_char, 'end': ent.end_char, 'type': ent.label_}
-                for ent in self.doc.ents]
+        response = []
+        for ent in self.doc.ents:
+            uri = ""
+            # if(ent.label_ == "ORG" or ent.label_ == "PERSON"):
+            #     uri = self.get_uri(ent.text)
+            response.append({'start': ent.start_char, 'end': ent.end_char, 'type': ent.label_, 'text_ent': ent.text, 'uri': uri})
+        return response
+        # return [{'start': ent.start_char, 'end': ent.end_char, 'type': ent.label_, 'text': ent.text}
+        #         for ent in self.doc.ents]
 
 class Triples(object):
     def __init__(self, nlp, text):
@@ -74,12 +100,15 @@ class Triples(object):
         return ""
     def to_json(self):
         return [{'subject': triple[0].text,
-                 'subject_uri': self.get_uri(triple[0].text),
+                 'subject_type': triple[4],
+                 'object_type': triple[5],
+                 #'subject_uri': self.get_uri(triple[0].text),
                  's_start': triple[0].start_char,
                  's_end': triple[0].end_char,
                  'predicate': triple[1]['text'],
+                 'score': triple[3],
                  'object': triple[2].text,
-                 'object_uri': self.get_uri(triple[2].text),
+                 #'object_uri': self.get_uri(triple[2].text),
                  'o_start': triple[2].start_char,
                  'o_end': triple[2].end_char}
                 for triple in textacy.extract.subject_verb_object_triples(self.doc)]
@@ -91,6 +120,22 @@ class Keywords(object):
     def to_json(self):
         return [{'text': keyword[0], 'score': keyword[1]}
                 for keyword in textacy.keyterms.sgrank(self.doc)]
+
+class Similarity(object):
+    def __init__(self, text):
+        self.text = text
+
+    def get_similar(self, uri):
+        headers = {'Content-type': 'application/json'}
+        data = { "entity": {"value": uri, "type": "uri"}}
+        data_json = json.dumps(data)
+        response = requests.post("http://localhost:8000/datasets/6/similar_entities?limit=6&search_k=300", data=data_json, headers=headers)
+        hits = response.json()['similar_entities']['response']
+        print(hits)
+        return hits
+
+    def to_json(self):
+        return self.get_similar(self.text)
 
 class Concepts(object):
     def __init__(self, nlp, text):
